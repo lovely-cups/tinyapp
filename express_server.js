@@ -52,15 +52,22 @@ app.get('/urls/:shortURL', (req, res) => {
   let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
   res.render('urls_show', templateVars);
 });
-app.get('/urls/:shortUrl', (req, res) => {
+
+app.post('/urls/:shortURL/delete', (req, res) => {
+  delete urlDatabase[req.params.shortURL];
+  res.redirect(`/urls`);
+});
+
+app.get('/u/:shortUrl', (req, res) => {
   const longURL = urlDatabase[req.params.shortURL];
   if (longURL) {
-    res.redirect(urldatabase[req.params.shortURL]);
+    res.redirect(urlDatabase[req.params.shortURL]);
   }else {
     res.statusCode = 404;
     res.send('<h3> 404 Aint find it </h3>')
   }
 });
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`);
 });

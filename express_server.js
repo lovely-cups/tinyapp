@@ -56,6 +56,11 @@ app.get('/urls/:shortURL', (req, res) => {
   res.render('urls_show', templateVars);
 });
 
+app.get('/register', (req, res) => {
+  let templateVars = {username: req.cookies["username"]};
+  res.render('urls_registration', templateVars);
+})
+
 app.post('/urls/:id', (req, res) =>{
   const longURL = req.body.longURL;
   const urlID = req.params.id;

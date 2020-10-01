@@ -113,9 +113,8 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-  res.cookie("username", req.body.username);
-  res.redirect('/urls');
-  if (emailFinder(req.body.email, users)) {
+  const user = emailFinder(req.body.email, users)
+  if (user) {
     if(req.body.password === user.password){
       res.cookie('user_id", user.userID');
       res.redirect('/urls');

@@ -55,7 +55,10 @@ app.get('/urls', (req, res) => {
 });
 app.post('/urls', (req, res) => {
   const shortURL = generateRandomString();
-  urlDatabase[shortURL] = req.body.longURL;
+  urlDatabase[shortURL] = {
+    longURL: req.body.longURL,
+    userID: req.cookies['user_id']
+  };
   res.redirect(`/urls/${shortURL}`);
   res.send('Ok');
 })
@@ -66,7 +69,7 @@ app.get('/urls/new', (req, res) => {
 });
 app.get('/urls/:shortURL', (req, res) => {
   const userObj = users[req.cookies["user_id"]];
-  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user: userObj };
+  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, user: userObj };
   res.render('urls_show', templateVars);
 });
 
@@ -140,9 +143,9 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 });
 
 app.get('/u/:shortUrl', (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL];
+  const longURL = urlDatabase[req.params.shortURL].longURL;
   if (longURL) {
-    res.redirect(urlDatabase[req.params.shortURL]);
+    res.redirect(urlDatabase[req.params.shortURL].longURL);
   }else {
     res.statusCode = 404;
     res.send('<h3> 404 Aint find it </h3>')

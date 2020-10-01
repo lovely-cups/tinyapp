@@ -17,10 +17,10 @@ const urlDatabase = {
 
 const users = {};
 
-const emailFinder = (email) => {
-  for (let user in users){
-    if(users[user].email === email){
-      return true;
+const emailFinder = (email, data) => {
+  for (let user in data){
+    if(data[user].email === email){
+      return data[user];
     }
   }
   return false;
@@ -81,9 +81,8 @@ app.post('/register', (req, res) => {
   if(!req.body.email || !req.body.password)  {
     res.statusCode = 400;
     res.send ('<h3> Nothing input into registration </h3>')
-    console.log(req.body.password, req.body.email);
   }
-   else if(emailFinder(req.body.email)){
+   else if(emailFinder(req.body.email, users)){
     res.statusCode = 400;
     res.send ('<h3> Account details already registered </h3>')
    } else {
@@ -116,22 +115,25 @@ app.get('/login', (req, res) => {
 app.post('/login', (req, res) => {
   res.cookie("username", req.body.username);
   res.redirect('/urls');
+  if (emailFinder(req.body.email, users)) {
+    if(req.body.password === user.password){
+      res.cookie('user_id", user.userID');
+      res.redirect('/urls');
+    } else {
+      res.statusCode = 403;
+      res.send('<h3>Wrong password entered </h3>');
+    } 
+  } else {
+    res.statusCode = 403; 
+    res.send('<h3> Email not registered with TinyApp</h3>');
+  }
 });
 
 app.post('/logout', (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect('/urls');
 })
 
-
-/*app.get('/', function (req, res) {
-  // Cookies that have not been signed
-  console.log('Cookies: ', req.cookies)
-
-  // Cookies that have been signed
-  console.log('Signed Cookies: ', req.signedCookies)
-})
-*/
 
 app.post('/urls/:shortURL/delete', (req, res) => {
   delete urlDatabase[req.params.shortURL];

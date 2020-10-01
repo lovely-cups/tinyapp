@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const PORT = 8080; 
+const bcrypt = require('bcrypt');
 
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
@@ -130,18 +131,14 @@ app.get('/login', (req, res) => {
 
 app.post('/login', (req, res) => {
   const user = emailFinder(req.body.email, users)
-  if (user) {
-    if(req.body.password === user.password){
-      res.cookie('user_id", user.userID');
-      res.redirect('/urls');
-    } else {
+  if (user && bcrypt.compareSync(req.body.password, user.password)) {
+        res.cookie('user_id", user.userID');
+        res.redirect('/urls');
+      
+      } else {
       res.statusCode = 403;
-      res.send('<h3>Wrong password entered </h3>');
-    } 
-  } else {
-    res.statusCode = 403; 
-    res.send('<h3> Email not registered with TinyApp</h3>');
-  }
+      res.send('<h3>Wrong information entered </h3>');
+}
 });
 
 app.post('/logout', (req, res) => {
@@ -178,11 +175,13 @@ app.post('/register', (req, res) => {
     res.statusCode = 400;
     res.send ('<h3> Account details already registered </h3>')
    } else {
-    users[userID] = {
-      userID,
-      email: req.body.email,
-      password: req.body.password
-   }
+    bcrypt.hash(req.body.password, 10 ,function(err, hashedPassword) {
+      users[userID] = {
+        userID,
+        email: req.body.email,
+        password: hashedPassword
+    }
+   })
   res.cookie("user_id", userID);
   res.redirect('/urls');
   } 

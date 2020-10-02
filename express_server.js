@@ -3,13 +3,25 @@ const app = express();
 const PORT = 8080; 
 const bcrypt = require('bcrypt');
 
-const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session');
 const bodyParser = require('body-parser');
 
 app.use(bodyParser.urlencoded({extended: true}));
 
 app.set('view engine', 'ejs');
-app.use(cookieParser());
+
+app.use(cookieSession({
+  name: 'session',
+  keys: ['secrect-stuff'],
+}));
+
+/*app.use((req, res, next) => {
+  const userID = req.session.user_id;
+  const user = users[userID];
+  req.user = user;
+  next();
+});
+*/
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
@@ -61,8 +73,11 @@ app.get('/hello', (req, res) => {
 
 
 app.get('/urls', (req, res) => {
-  const userObj = users[req.cookies["user_id"]];
+  console.log("inside urls", users);
+  console.log("session inside urls", req.session)
+  const userObj = users[req.session.user_id];
   const urls = urlsForUser["user_id"];
+  
   let templateVars = { urls: urls, user: userObj};
   
   res.render('urls_index', templateVars);
@@ -72,7 +87,7 @@ app.post('/urls', (req, res) => {
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = {
     longURL: req.body.longURL,
-    userID: req.cookies['user_id']
+    userID: req.session.user_id
   }
   res.redirect(`/urls/${shortURL}`);
   res.send('Ok');
@@ -81,8 +96,9 @@ app.post('/urls', (req, res) => {
 
 
 app.get('/urls/new', (req, res) => {
-  const userObj = users[req.cookies["user_id"]];
-  
+  const userObj = users[req.session.user_id];
+  console.log("user object", userObj);
+  console.log("request sess", req.session.user_id);
   if(userObj) {
     let templateVars = {user: userObj};
     res.render('urls_new', templateVars);
@@ -92,22 +108,22 @@ app.get('/urls/new', (req, res) => {
   
 });
 app.get('/urls/:shortURL', (req, res) => {
-  const ID = req.cookies['user_id'];
-  const userUrls = urlsForUser(req.cookies['user_id']);
+  const ID = req.session.user_id;
+  const userUrls = urlsForUser(req.session.user_id);
   let templateVars = { urls: userUrls, user: users[ID], shortURL: req.params.shortURL };
   res.render('urls_show', templateVars);
 });
 
 app.post('/urls/:shortURL', (req, res) => {
   const shortURL = req.params.shortURL;
-  if(req.cookies['user_id'] === urlDatabase[shortURL].userID) {
+  if(req.session.user_id === urlDatabase[shortURL].userID) {
     urlDatabase[shortURL].longURL = req.body.updatedURL;
   }
   res.redirect(`/urls/${shortURL}`);
 });
 
 app.post('/urls/:shortURL/delete', (req, res) => {
-  if(req.cookies['user_id'] === urlDatabase[req.params.shortURL] .userID) {
+  if(req.session.user_id === urlDatabase[req.params.shortURL].userID) {
   delete urlDatabase[req.params.shortURL];
   }
   res.redirect(`/urls`);
@@ -124,25 +140,30 @@ app.post('/urls/:id', (req, res) =>{
 })
 
 app.get('/login', (req, res) => {
-  const userObj = users[req.cookies["user_id"]];
+  const userObj = users[req.session.user_id];
   let templateVars = {user: userObj};
   res.render('urls_login', templateVars);
 });
 
 app.post('/login', (req, res) => {
   const user = emailFinder(req.body.email, users)
+  console.log('this is users! :>> ', users); 
+  console.log('this is user! :>> ', user);  
   if (user && bcrypt.compareSync(req.body.password, user.password)) {
-        res.cookie('user_id", user.userID');
+      
+    
+    req.session.user_id = user.userID;
+        console.log("req sessions", req.session);
         res.redirect('/urls');
       
       } else {
       res.statusCode = 403;
-      res.send('<h3>Wrong information entered </h3>');
+      res.send('<h3> Wrong information entered </h3>');
 }
 });
 
 app.post('/logout', (req, res) => {
-  res.clearCookie('user_id');
+  res.clearCookie('session');
   res.redirect('/urls');
 })
 
@@ -160,7 +181,7 @@ app.get('/u/:shortURL', (req, res) => {
 });
 
 app.get('/register', (req, res) => {
-  const userObj = users[req.cookies["user_id"]];
+  const userObj = users[req.session.user_id];;
   let templateVars = {user: userObj};
   res.render('urls_registration', templateVars);
 })
@@ -175,14 +196,17 @@ app.post('/register', (req, res) => {
     res.statusCode = 400;
     res.send ('<h3> Account details already registered </h3>')
    } else {
-    bcrypt.hash(req.body.password, 10 ,function(err, hashedPassword) {
+    bcrypt.hash(req.body.password, 10,function(err, hashedPassword) {
       users[userID] = {
         userID,
         email: req.body.email,
         password: hashedPassword
+        
     }
+    
    })
-  res.cookie("user_id", userID);
+  req.session.user_id = userID;
+  
   res.redirect('/urls');
   } 
   

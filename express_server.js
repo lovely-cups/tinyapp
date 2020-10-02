@@ -15,13 +15,7 @@ app.use(cookieSession({
   keys: ['secrect-stuff'],
 }));
 
-/*app.use((req, res, next) => {
-  const userID = req.session.user_id;
-  const user = users[userID];
-  req.user = user;
-  next();
-});
-*/
+const {getUserByEmail} = require('./helpers');
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
@@ -41,14 +35,7 @@ const urlsForUser = (id) => {
   return urls;
 }
 
-const emailFinder = (email, data) => {
-  for (let user in data){
-    if(data[user].email === email){
-      return data[user];
-    }
-  }
-  return false;
-}
+
 
 const generateRandomString = () => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -62,8 +49,14 @@ const generateRandomString = () => {
 };
 
 app.get('/', (req, res) => {
-  res.send('Hello!');
+  if (req.session.userID) {
+    res.redirect('/urls');
+  } else {
+    res.redirect('/login');
+  }
 });
+
+
 app.get('/urls.json', (req, res) => {
   res.send(urlDatabase);
 });
@@ -73,10 +66,8 @@ app.get('/hello', (req, res) => {
 
 
 app.get('/urls', (req, res) => {
-  console.log("inside urls", users);
-  console.log("session inside urls", req.session)
   const userObj = users[req.session.user_id];
-  const urls = urlsForUser["user_id"];
+  const urls = urlsForUser(userObj, urlDatabase); 
   
   let templateVars = { urls: urls, user: userObj};
   
@@ -97,8 +88,6 @@ app.post('/urls', (req, res) => {
 
 app.get('/urls/new', (req, res) => {
   const userObj = users[req.session.user_id];
-  console.log("user object", userObj);
-  console.log("request sess", req.session.user_id);
   if(userObj) {
     let templateVars = {user: userObj};
     res.render('urls_new', templateVars);
@@ -107,6 +96,8 @@ app.get('/urls/new', (req, res) => {
   }
   
 });
+
+
 app.get('/urls/:shortURL', (req, res) => {
   const ID = req.session.user_id;
   const userUrls = urlsForUser(req.session.user_id);
@@ -130,14 +121,15 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 });
 
 
-app.post('/urls/:id', (req, res) =>{
-  const longURL = req.body.longURL;
-  const urlID = req.params.id;
-
-  urlDatabase[urlID] = longURL;
-
-  res.redirect('/urls');
-})
+app.get('/u/:shortURL', (req, res) => {
+  const longURL = urlDatabase[req.params.shortURL];
+  if (longURL) {
+    res.redirect(urlDatabase[req.params.shortURL].longURL);
+  }else {
+    res.statusCode = 404;
+    res.send('<h3> 404 Aint find it </h3>')
+  }
+});
 
 app.get('/login', (req, res) => {
   const userObj = users[req.session.user_id];
@@ -146,7 +138,7 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-  const user = emailFinder(req.body.email, users)
+  const user = getUserByEmail(req.body.email, users)
   console.log('this is users! :>> ', users); 
   console.log('this is user! :>> ', user);  
   if (user && bcrypt.compareSync(req.body.password, user.password)) {
@@ -170,15 +162,7 @@ app.post('/logout', (req, res) => {
 
 
 
-app.get('/u/:shortURL', (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL].longURL;
-  if (longURL) {
-    res.redirect(urlDatabase[req.params.shortURL].longURL);
-  }else {
-    res.statusCode = 404;
-    res.send('<h3> 404 Aint find it </h3>')
-  }
-});
+
 
 app.get('/register', (req, res) => {
   const userObj = users[req.session.user_id];;
@@ -192,7 +176,7 @@ app.post('/register', (req, res) => {
     res.statusCode = 400;
     res.send ('<h3> Nothing input into registration </h3>')
   }
-   else if(emailFinder(req.body.email, users)){
+   else if(getUserByEmail(req.body.email, users)){
     res.statusCode = 400;
     res.send ('<h3> Account details already registered </h3>')
    } else {

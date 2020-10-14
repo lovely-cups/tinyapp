@@ -82,15 +82,16 @@ app.get('/urls', (req, res) => {
   }
 });
 
-
+//refactored post for new shortURLs
 app.post('/urls', (req, res) => {
+  if(req.session.user_id) {
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = {
     longURL: req.body.longURL,
     userID: req.session.user_id
-  }
+  };
   res.redirect(`/urls/${shortURL}`);
-  if(!req.session.user_id) {
+  } else {
     res.statusCode = 401;
     res.send('<h3> Must log in first </h3>')
   }

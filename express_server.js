@@ -113,7 +113,7 @@ app.get('/urls/new', (req, res) => {
 app.get('/urls/:shortURL', (req, res) => {
   const ID = req.session.user_id;
   const userUrls = urlsForUser(req.session.user_id);
-  if(urlDatabse[req.params]) {
+  if(urlDatabase[req.params]) {
   let templateVars = { urls: userUrls, user: users[ID], shortURL: req.params.shortURL };
   res.render('urls_show', templateVars);
   } else {
@@ -195,13 +195,11 @@ app.post('/register', (req, res) => {
     res.statusCode = 400;
     res.send ('<h3> Account details already registered </h3>')
    } else {
-    bcrypt.hash(req.body.password, 10,function(err, hashedPassword) {
       users[userID] = {
         userID,
         email: req.body.email,
-        password: hashedPassword
+        password: bcrypt.hash(req.body.password, 10)
     }
-  })
   req.session.user_id = userID;
   res.redirect('/urls');
   } 

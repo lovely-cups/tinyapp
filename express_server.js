@@ -19,11 +19,8 @@ app.use(cookieSession({
 const {getUserByEmail} = require('./helpers');
 
 
-const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com",
-  "j6hw72": "https://developer.mozilla.org"
-};
+const urlDatabase = {};
+
 
 const users = {};
 
@@ -153,12 +150,10 @@ app.get('/login', (req, res) => {
 
 //route for login checking for matching information
 app.post('/login', (req, res) => {
-  const user = getUserByEmail(req.body.email, users)
-  console.log('this is users! :>> ', users); 
-  console.log('this is user! :>> ', user);  
-  if (user && bcrypt.compareSync(req.body.password, user.password)) {
+  const password = req.body.password
+  const user = getUserByEmail(req.body.email, users) 
+  if (user && password) {
       req.session.user_id = user.userID;
-        console.log("req sessions", req.session);
         res.redirect('/urls');
       
       } else {
@@ -167,9 +162,11 @@ app.post('/login', (req, res) => {
 }
 });
 
+
 //clear cookie and log out route
 app.post('/logout', (req, res) => {
   res.clearCookie('session');
+  res.clearCookie('session.sig');
   res.redirect('/urls');
 })
 

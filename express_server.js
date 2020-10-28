@@ -60,26 +60,18 @@ app.get('/', (req, res) => {
 });
 
 
-app.get('/urls.json', (req, res) => {
-  res.send(urlDatabase);
-});
-
-
-app.get('/hello', (req, res) => {
-  res.send('<html><body>Hello <b>World</b></body></html>\n');
-});
 
 //Urls page for user generated short and long URLs
 app.get('/urls', (req, res) => {
-  const userObj = users[req.session.user_id];
-  const urls = urlsForUser(userObj, urlDatabase); 
-  if(userObj) {
-  let templateVars = { urls: urls, user: userObj};
+  const userID = req.session.user_id;
+  const userUrls = urlsForUser(userID, urlDatabase);
+  const templateVars = { urls: userUrls, user: users[userID] };
+  
+  if (!userID) {
+    res.statusCode = 401;
+  }
   
   res.render('urls_index', templateVars);
-  } else {
-    res.status(403).send("Register or login for access.");
-  }
 });
 
 //refactored post for new shortURLs
@@ -112,9 +104,10 @@ app.get('/urls/new', (req, res) => {
 //Page for editing long URLs
 app.get('/urls/:shortURL', (req, res) => {
   const ID = req.session.user_id;
-  const userUrls = urlsForUser(req.session.user_id);
-  if(urlDatabase[req.params]) {
-  let templateVars = { urls: userUrls, user: users[ID], shortURL: req.params.shortURL };
+  const userUrls = urlsForUser(req.session.user_id, urlDatabase);
+  const templateVars = { urls: userUrls, user: users[ID], shortURL: req.params.shortURL };
+
+  if(urlDatabase[req.params.shortURL]) {
   res.render('urls_show', templateVars);
   } else {
     res.send("Page Not Found");
@@ -134,14 +127,16 @@ app.post('/urls/:shortURL', (req, res) => {
 app.post('/urls/:shortURL/delete', (req, res) => {
   if(req.session.user_id === urlDatabase[req.params.shortURL].userID) {
   delete urlDatabase[req.params.shortURL];
-  }
   res.redirect(`/urls`);
+  } else {
+    res.statusCode = 401;
+    res.send("<h3> No access to delete URL <h3>");
+  }
 });
 
 
 app.get('/u/:shortURL', (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL];
-  if (longURL) {
+  if (urlDatabase[req.params.shortURL]) {
     res.redirect(urlDatabase[req.params.shortURL].longURL);
   } else {
     res.statusCode = 404;

@@ -114,10 +114,14 @@ app.get('/urls/:shortURL', (req, res) => {
 
 app.post('/urls/:shortURL', (req, res) => {
   const shortURL = req.params.shortURL;
+  const longURL = req.body.longURL;
   if(req.session.user_id === urlDatabase[shortURL].userID) {
-    urlDatabase[shortURL].longURL = req.body.updatedURL;
+    urlDatabase[shortURL].longURL = longURL
+    res.redirect(`/urls/${shortURL}`);
+  } else {
+    res.statusCode = 401;
+    res.send("<h3> No access to update URL <h3>")
   }
-  res.redirect(`/urls/${shortURL}`);
 });
 
 //directs to if the delte button is pressed
@@ -152,28 +156,27 @@ app.get('/login', (req, res) => {
 app.post('/login', (req, res) => {
   const password = req.body.password
   const user = getUserByEmail(req.body.email, users) 
-  if (user && password) {
-      req.session.user_id = user.userID;
-        res.redirect('/urls');
+  if (!user && !password === users.password) {
+    res.statusCode = 403;
+    res.send('<h3> Wrong information entered </h3>');
       
       } else {
-      res.statusCode = 403;
-      res.send('<h3> Wrong information entered </h3>');
+        req.session.user_id = user.userID;
+        res.redirect('/urls');
+      
 }
 });
 
 
 //clear cookie and log out route
 app.post('/logout', (req, res) => {
-  res.clearCookie('session');
-  res.clearCookie('session.sig');
+  req.session = null;
   res.redirect('/urls');
 })
 
 //registration page
 app.get('/register', (req, res) => {
-  const userObj = users[req.session.user_id];;
-  let templateVars = {user: userObj};
+  const templateVars = {user: null};
   res.render('urls_registration', templateVars);
 })
 
@@ -190,7 +193,7 @@ app.post('/register', (req, res) => {
       users[userID] = {
         userID,
         email: req.body.email,
-        password: bcrypt.hash(req.body.password, 10)
+        password: bcrypt.hashSync(req.body.password, 10)
     }
   req.session.user_id = userID;
   res.redirect('/urls');

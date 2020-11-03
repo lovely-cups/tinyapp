@@ -8,6 +8,8 @@ const cookieSession = require('cookie-session');
 const bodyParser = require('body-parser');
 
 
+
+
 //middlewares
 app.use(bodyParser.urlencoded({extended: true}));
 app.set('view engine', 'ejs');
@@ -15,8 +17,6 @@ app.use(cookieSession({
   name: 'session',
   keys: ['secrect-stuff'],
 }));
-
-const {getUserByEmail} = require('./helpers');
 
 
 const urlDatabase = {};
@@ -45,6 +45,18 @@ const generateRandomString = () => {
 
   return randomString;
 };
+
+const getUserByEmail = (email, data) => {
+  for (let user in data){
+    if(data[user].email === email){
+      return data[user];
+    }
+  }
+  return undefined;
+}
+
+
+
 
 
 
@@ -154,15 +166,16 @@ app.get('/login', (req, res) => {
 
 //route for login checking for matching information
 app.post('/login', (req, res) => {
-  const password = req.body.password
+  
   const user = getUserByEmail(req.body.email, users) 
-  if (!user && !password === users.password) {
-    res.statusCode = 403;
-    res.send('<h3> Wrong information entered </h3>');
+  if (user && bcrypt.compare(req.body.password, user.password)) {
+    req.session.user_id = user.userID;
+    res.redirect('/urls');
+   
       
       } else {
-        req.session.user_id = user.userID;
-        res.redirect('/urls');
+        res.statusCode = 403;
+    res.send('<h3> Wrong information entered </h3>');
       
 }
 });

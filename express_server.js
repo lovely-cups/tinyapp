@@ -165,19 +165,15 @@ app.get('/login', (req, res) => {
 });
 
 //route for login checking for matching information
-app.post('/login', (req, res) => {
-  
-  const user = getUserByEmail(req.body.email, users) 
-  if (user && bcrypt.compare(req.body.password, user.password)) {
+app.post("/login", (req, res) => {
+  const user = getUserByEmail(req.body.email, users);
+  if (user && bcrypt.compareSync(req.body.password, user.password)) {
     req.session.user_id = user.userID;
-    res.redirect('/urls');
-   
-      
-      } else {
-        res.statusCode = 403;
-    res.send('<h3> Wrong information entered </h3>');
-      
-}
+    res.redirect("/urls");
+  } else {
+    res.statusCode = 403;
+    res.send("<h3> Wrong information entered </h3>");
+  }
 });
 
 
